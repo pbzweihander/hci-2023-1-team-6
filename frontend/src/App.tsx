@@ -429,6 +429,9 @@ function App() {
               className="btn-primary modal-action btn"
               htmlFor="add-characteristic-modal"
               onClick={() => {
+                if (inputCharacteristic === "") {
+                  return;
+                }
                 modifyCharacter(selectedCharacterId, (c) => ({
                   ...c,
                   characteristics: [...c.characteristics, inputCharacteristic],
