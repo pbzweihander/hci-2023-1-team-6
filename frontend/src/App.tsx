@@ -331,11 +331,11 @@ function App() {
             <span className="mr-1 font-bold">Add characteristic for</span>
             {inputName}
           </h3>
-          <div className="flex items-center">
-            <span className="whitespace-nowrap">{inputName}</span>
+          <div className="mb-1">{inputName} ...</div>
+          <div>
             <input
               type="text"
-              className="input-bordered input ml-1 w-full"
+              className="input-bordered input w-full"
               placeholder="is short tempered"
               value={inputCharacteristic}
               onChange={(e) => setInputCharacteristic(e.target.value)}
