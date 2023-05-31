@@ -204,7 +204,7 @@ function App() {
               <ul className="px-4 py-2">
                 {selectedCharacter.characteristics.map((ch) => (
                   <li key={ch} className="mb-2 flex">
-                    <span className="flex-grow">... {ch}</span>
+                    <span className="flex-grow">{ch}</span>
                     <button
                       className="btn-error btn-xs btn-circle btn"
                       onClick={() => {
