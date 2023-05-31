@@ -147,7 +147,7 @@ function App() {
         </button>
       </div>
       <div className="flex h-[calc(100%-64px)] w-full">
-        <div className="h-full flex-1 bg-slate-100">
+        <div className="h-full flex-1 overflow-y-scroll bg-slate-100">
           {selectedCharacter !== undefined ? (
             <>
               <div className="p-2 text-xl">Name:</div>
