@@ -187,18 +187,20 @@ function App() {
                   value={inputName}
                   onChange={(e) => setInputName(e.target.value)}
                 />
-                <button
-                  className="btn-primary btn mr-2"
-                  onClick={() => {
-                    modifyCharacter(selectedCharacterId, (c) => ({
-                      ...c,
-                      name: inputName,
-                    }));
-                  }}
-                >
-                  Save
-                </button>
-                <button className="btn-accent btn">Generate</button>
+                <div className="btn-group">
+                  <button
+                    className="btn-primary btn"
+                    onClick={() => {
+                      modifyCharacter(selectedCharacterId, (c) => ({
+                        ...c,
+                        name: inputName,
+                      }));
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button className="btn-accent btn">Generate</button>
+                </div>
               </div>
               <div className="divider" />
               <div className="flex justify-center p-2">
