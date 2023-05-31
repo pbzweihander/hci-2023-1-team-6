@@ -74,6 +74,7 @@ function App() {
   };
 
   const [inputName, setInputName] = useState("");
+  const [inputCharacteristic, setInputCharacteristic] = useState("");
 
   const characters = charactersMap[chapter] ?? [];
 
@@ -171,9 +172,19 @@ function App() {
                 <button className="btn-accent btn">Generate</button>
               </div>
               <div className="divider" />
-              <div className="flex p-2 text-xl">
-                <span className="flex-grow">Charateristics:</span>
-                <button className="btn-circle btn" title="Add characteristic">
+              <div className="flex justify-center p-2">
+                <div className="flex-grow">
+                  <span className="mr-3 text-xl">Charateristics:</span>
+                  <span className="text-lg">{inputName} ...</span>
+                </div>
+                <label
+                  className="btn-sm btn-circle btn"
+                  title="Add characteristic"
+                  htmlFor="add-characteristic-modal"
+                  onClick={() => {
+                    setInputCharacteristic("");
+                  }}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -188,12 +199,48 @@ function App() {
                       d="M12 4.5v15m7.5-7.5h-15"
                     />
                   </svg>
-                </button>
+                </label>
               </div>
+              <ul className="px-4 py-2">
+                {selectedCharacter.characteristics.map((ch) => (
+                  <li key={ch} className="mb-2 flex">
+                    <span className="flex-grow">... {ch}</span>
+                    <button
+                      className="btn-error btn-xs btn-circle btn"
+                      onClick={() => {
+                        modifyCharacter(selectedCharacterId, (c) => ({
+                          ...c,
+                          characteristics: c.characteristics.filter(
+                            (oCh) => oCh !== ch
+                          ),
+                        }));
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-6 w-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
               <div className="divider" />
               <div className="flex p-2 text-xl">
                 <span className="flex-grow">Relationships:</span>
-                <button className="btn-circle btn" title="Add relationship">
+                <button
+                  className="btn-sm btn-circle btn"
+                  title="Add relationship"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -270,6 +317,50 @@ function App() {
                 />
               </svg>
             </button>
+          </div>
+        </div>
+      </div>
+      <input
+        type="checkbox"
+        id="add-characteristic-modal"
+        className="modal-toggle"
+      />
+      <div className="modal">
+        <div className="modal-box">
+          <h3 className="mb-2 text-lg">
+            <span className="mr-1 font-bold">Add characteristic for</span>
+            {inputName}
+          </h3>
+          <div className="flex items-center">
+            <span className="whitespace-nowrap">{inputName}</span>
+            <input
+              type="text"
+              className="input-bordered input ml-1 w-full"
+              placeholder="is short tempered"
+              value={inputCharacteristic}
+              onChange={(e) => setInputCharacteristic(e.target.value)}
+            />
+          </div>
+          <div className="flex">
+            <span className="flex-grow" />
+            <label
+              className="btn-secondary modal-action btn mr-2"
+              htmlFor="add-characteristic-modal"
+            >
+              Cancel
+            </label>
+            <label
+              className="btn-primary modal-action btn"
+              htmlFor="add-characteristic-modal"
+              onClick={() => {
+                modifyCharacter(selectedCharacterId, (c) => ({
+                  ...c,
+                  characteristics: [...c.characteristics, inputCharacteristic],
+                }));
+              }}
+            >
+              Save
+            </label>
           </div>
         </div>
       </div>
