@@ -96,6 +96,18 @@ function App() {
       }
     });
   };
+  const deleteCharacter = (id: IdType | undefined): void => {
+    if (id === undefined) {
+      return;
+    }
+    setCharactersMap((map) => {
+      const cs = map[chapter] ?? [];
+      return {
+        ...map,
+        [chapter]: cs.filter((c) => c.id !== id),
+      };
+    });
+  };
 
   const [inputName, setInputName] = useState("");
   const [inputCharacteristic, setInputCharacteristic] = useState("");
@@ -179,7 +191,31 @@ function App() {
         <div className="h-full flex-1 overflow-y-scroll bg-slate-100">
           {selectedCharacter !== undefined ? (
             <>
-              <div className="p-2 text-xl">Name:</div>
+              <div className="flex items-center p-2 text-xl">
+                <span className="flex-grow">Name:</span>
+                <button
+                  className="btn-error btn-circle btn"
+                  title="Delete character"
+                  onClick={() => {
+                    deleteCharacter(selectedCharacterId);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="h-6 w-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
               <div className="flex p-2">
                 <input
                   type="text"
@@ -203,7 +239,7 @@ function App() {
                 </div>
               </div>
               <div className="divider" />
-              <div className="flex justify-center p-2">
+              <div className="flex items-center p-2">
                 <div className="flex-grow">
                   <span className="mr-3 text-xl">Charateristics:</span>
                   <span className="text-lg">{inputName} ...</span>
@@ -238,6 +274,7 @@ function App() {
                     <span className="flex-grow">{ch}</span>
                     <button
                       className="btn-error btn-xs btn-circle btn"
+                      title="Delete characteristic"
                       onClick={() => {
                         modifyCharacter(selectedCharacterId, (c) => ({
                           ...c,
@@ -266,7 +303,7 @@ function App() {
                 ))}
               </ul>
               <div className="divider" />
-              <div className="flex justify-center p-2">
+              <div className="flex items-center p-2">
                 <div className="flex-grow">
                   <span className="mr-3 text-xl">Relationships:</span>
                   <span className="text-lg">{inputName} and ...</span>
@@ -305,6 +342,7 @@ function App() {
                     </span>
                     <button
                       className="btn-error btn-xs btn-circle btn"
+                      title="Delete relationship"
                       onClick={() => {
                         modifyCharacter(selectedCharacterId, (c) => ({
                           ...c,
