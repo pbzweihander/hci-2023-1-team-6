@@ -37,7 +37,6 @@ function renderEdgesFromCharacter(character: Character): Edge[] {
     from: character.id,
     to: relationship.toId,
     label: relationship.description,
-    arrows: { to: true },
   }));
 }
 
@@ -343,6 +342,13 @@ function App() {
             getNetwork={(network) => setNetwork(network)}
             graph={{ nodes, edges }}
             events={events}
+            options={{
+              edges: {
+                arrows: { to: true },
+                length: 500,
+                smooth: { enabled: true, type: "continuous", roundness: 0.5 },
+              },
+            }}
           />
           <div className="absolute right-0 top-[64px] m-2">
             <button
