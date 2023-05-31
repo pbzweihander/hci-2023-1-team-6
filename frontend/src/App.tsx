@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactElement, useState } from "react";
 import Graph, {
   type Network,
   type Edge,
@@ -41,6 +41,31 @@ function renderEdgesFromCharacter(character: Character): Edge[] {
   }));
 }
 
+function Select({
+  className,
+  items,
+  value,
+  onChange,
+}: {
+  className: string;
+  items: { value: string; label: string }[];
+  value: string | undefined;
+  onChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <select className={className} onChange={(e) => onChange(e.target.value)}>
+      <option disabled selected={value === undefined}>
+        Pick a character
+      </option>
+      {items.map((i, idx) => (
+        <option key={idx} value={i.value} selected={value === i.value}>
+          {i.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function App() {
   const [chapter, setChapter] = useState(0);
   const [charactersMap, setCharactersMap] = useState<{
@@ -75,6 +100,11 @@ function App() {
 
   const [inputName, setInputName] = useState("");
   const [inputCharacteristic, setInputCharacteristic] = useState("");
+  const [inputRelationshipToId, setInputRelationshipToId] = useState<
+    number | undefined
+  >(undefined);
+  const [inputRelationshipDescription, setInputRelationshipDescription] =
+    useState("");
 
   const characters = charactersMap[chapter] ?? [];
 
@@ -235,11 +265,19 @@ function App() {
                 ))}
               </ul>
               <div className="divider" />
-              <div className="flex p-2 text-xl">
-                <span className="flex-grow">Relationships:</span>
-                <button
+              <div className="flex justify-center p-2">
+                <div className="flex-grow">
+                  <span className="mr-3 text-xl">Relationships:</span>
+                  <span className="text-lg">{inputName} and ...</span>
+                </div>
+                <label
                   className="btn-sm btn-circle btn"
                   title="Add relationship"
+                  htmlFor="add-relationship-modal"
+                  onClick={() => {
+                    setInputRelationshipToId(undefined);
+                    setInputRelationshipDescription("");
+                  }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -255,8 +293,46 @@ function App() {
                       d="M12 4.5v15m7.5-7.5h-15"
                     />
                   </svg>
-                </button>
+                </label>
               </div>
+              <ul className="px-4 py-2">
+                {selectedCharacter.relationships.map((r, idx) => (
+                  <li key={idx} className="mb-2 flex">
+                    <span className="flex-grow">
+                      {characters.find((c) => c.id === r.toId)?.name}{" "}
+                      {r.description}
+                    </span>
+                    <button
+                      className="btn-error btn-xs btn-circle btn"
+                      onClick={() => {
+                        modifyCharacter(selectedCharacterId, (c) => ({
+                          ...c,
+                          relationships: c.relationships.filter(
+                            (oR) =>
+                              oR.toId !== r.toId &&
+                              oR.description !== r.description
+                          ),
+                        }));
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-6 w-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </>
           ) : (
             <div className="p-2 text-lg">Select a character to edit</div>
@@ -356,6 +432,74 @@ function App() {
                 modifyCharacter(selectedCharacterId, (c) => ({
                   ...c,
                   characteristics: [...c.characteristics, inputCharacteristic],
+                }));
+              }}
+            >
+              Save
+            </label>
+          </div>
+        </div>
+      </div>
+      <input
+        type="checkbox"
+        id="add-relationship-modal"
+        className="modal-toggle"
+      />
+      <div className="modal">
+        <div className="modal-box">
+          <h3 className="mb-2 text-lg">
+            <span className="mr-1 font-bold">Add relationship for</span>
+            {inputName}
+          </h3>
+          <div className="mb-1">{inputName} and ...</div>
+          <Select
+            className="select-bordered select mb-1 w-full"
+            items={characters
+              .filter((c) => c.id !== selectedCharacterId)
+              .map((c) => ({ value: `${c.id}`, label: c.name }))}
+            value={
+              inputRelationshipToId !== undefined
+                ? `${inputRelationshipToId}`
+                : undefined
+            }
+            onChange={(v) => setInputRelationshipToId(Number(v))}
+          />
+          <div>
+            <input
+              type="text"
+              className="input-bordered input w-full"
+              placeholder="is a good friend"
+              value={inputRelationshipDescription}
+              onChange={(e) => setInputRelationshipDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex">
+            <span className="flex-grow" />
+            <label
+              className="btn-secondary modal-action btn mr-2"
+              htmlFor="add-relationship-modal"
+            >
+              Cancel
+            </label>
+            <label
+              className="btn-primary modal-action btn"
+              htmlFor="add-relationship-modal"
+              onClick={() => {
+                if (inputRelationshipToId === undefined) {
+                  return;
+                }
+                if (inputRelationshipDescription === "") {
+                  return;
+                }
+                modifyCharacter(selectedCharacterId, (c) => ({
+                  ...c,
+                  relationships: [
+                    ...c.relationships,
+                    {
+                      toId: inputRelationshipToId,
+                      description: inputRelationshipDescription,
+                    },
+                  ],
                 }));
               }}
             >
