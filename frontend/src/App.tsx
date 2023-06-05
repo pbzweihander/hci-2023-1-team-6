@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { ReactElement, useState } from "react";
 import Graph, {
   type Network,
@@ -6,6 +7,9 @@ import Graph, {
   type IdType,
   type GraphEvents,
 } from "react-vis-graph-wrapper";
+
+import { MessageHistory } from "./httpTypes";
+import { useGenerateNameMutation } from "./mutationHooks";
 
 interface Relationship {
   toId: number;
@@ -117,11 +121,63 @@ function App() {
   const [inputRelationshipDescription, setInputRelationshipDescription] =
     useState("");
 
+  const [generatingNameMessageHistories, setGeneratingNameMessageHistories] =
+    useState<MessageHistory[]>([]);
+
+  const { mutate: generateNameMutate, isLoading: isGeneratingNameLoading } =
+    useGenerateNameMutation({
+      onSuccess: (content) => {
+        setGeneratingNameMessageHistories((histories) => [
+          ...histories,
+          { role: "assistant", content },
+        ]);
+      },
+    });
+
+  const [selectedGeneratedName, setSelectedGeneratedName] = useState("");
+  const [inputGenerateNamePrompt, setInputGenerateNamePrompt] = useState("");
+
+  window.setSelectedGeneratedName = (name: string) => {
+    setSelectedGeneratedName(name);
+  };
+
   const characters = charactersMap[chapter] ?? [];
 
   const selectedCharacter = characters.find(
     (character) => character.id === selectedCharacterId
   );
+
+  const initialGenerateName = () => {
+    if (selectedCharacter === undefined) {
+      return;
+    }
+    generateNameMutate({
+      histories: [],
+      characteristics: selectedCharacter.characteristics,
+      relationships: selectedCharacter.relationships.map((rel) => ({
+        to: characters.find((c) => c.id === rel.toId)?.name ?? "a character",
+        description: rel.description,
+      })),
+    });
+  };
+  const generateName = (message?: string) => {
+    if (selectedCharacter === undefined) {
+      return;
+    }
+    const histories = [...generatingNameMessageHistories];
+    if (message != null) {
+      histories.push({ role: "user", content: message });
+    }
+    setGeneratingNameMessageHistories(histories);
+    generateNameMutate({
+      histories,
+      characteristics: selectedCharacter.characteristics,
+      relationships: selectedCharacter.relationships.map((rel) => ({
+        to: characters.find((c) => c.id === rel.toId)?.name ?? "a character",
+        description: rel.description,
+      })),
+    });
+  };
 
   const nodes = characters.map(renderNodeFromCharacter);
   const edges = characters.flatMap(renderEdgesFromCharacter);
@@ -223,9 +279,9 @@ function App() {
                   value={inputName}
                   onChange={(e) => setInputName(e.target.value)}
                 />
-                <div className="btn-group">
+                <div className="join">
                   <button
-                    className="btn-primary btn"
+                    className="btn-primary join-item btn"
                     onClick={() => {
                       modifyCharacter(selectedCharacterId, (c) => ({
                         ...c,
@@ -235,7 +291,18 @@ function App() {
                   >
                     Save
                   </button>
-                  <button className="btn-accent btn">Generate</button>
+                  <label
+                    className="btn-accent join-item btn"
+                    htmlFor="generate-name-modal"
+                    onClick={() => {
+                      setGeneratingNameMessageHistories([]);
+                      setSelectedGeneratedName("");
+                      setInputGenerateNamePrompt("");
+                      initialGenerateName();
+                    }}
+                  >
+                    Generate
+                  </label>
                 </div>
               </div>
               <div className="divider" />
@@ -555,6 +622,114 @@ function App() {
               Save
             </label>
           </div>
+        </div>
+      </div>
+      <input
+        type="checkbox"
+        id="generate-name-modal"
+        className="modal-toggle"
+      />
+      <div className="modal">
+        <div className="modal-box w-11/12 max-w-5xl">
+          {generatingNameMessageHistories.length === 0 ? (
+            <div className="flex flex-col items-center">
+              <span className="loading loading-spinner loading-lg mb-4" />
+              <label
+                className="btn-warning modal-action btn"
+                htmlFor="generate-name-modal"
+              >
+                Cancel
+              </label>
+            </div>
+          ) : (
+            <>
+              {generatingNameMessageHistories.map((history) => {
+                const isAssistant = history.role === "assistant";
+                const content = DOMPurify.sanitize(history.content).replace(
+                  /"(.*?)"/g,
+                  '<span class="link" onclick="window.setSelectedGeneratedName(\'$1\')">"$1"</span>'
+                );
+                return (
+                  <div
+                    className={
+                      "chat " + (isAssistant ? "chat-start" : "chat-end")
+                    }
+                  >
+                    <div
+                      className={
+                        "chat-bubble " +
+                        (isAssistant
+                          ? "chat-bubble-primary"
+                          : "chat-bubble-secondary")
+                      }
+                      dangerouslySetInnerHTML={{ __html: content }}
+                    />
+                  </div>
+                );
+              })}
+              {isGeneratingNameLoading && (
+                <div className="chat chat-start">
+                  <div className="chat-bubble chat-bubble-primary">
+                    <span className="loading loading-spinner loading-lg" />
+                  </div>
+                </div>
+              )}
+              <div className="divider" />
+              <div className="join flex">
+                <label className="label join-item bg-slate-100 px-4">
+                  {selectedGeneratedName}
+                </label>
+                <label
+                  className="btn-success modal-action join-item btn"
+                  htmlFor="generate-name-modal"
+                  onClick={() => {
+                    if (selectedGeneratedName != null) {
+                      setInputName(selectedGeneratedName);
+                      modifyCharacter(selectedCharacterId, (c) => ({
+                        ...c,
+                        name: selectedGeneratedName,
+                      }));
+                    }
+                  }}
+                >
+                  Yes
+                </label>
+                <button
+                  className="btn-warning join-item btn"
+                  onClick={() => {
+                    generateName("No, generate another one.");
+                  }}
+                >
+                  No
+                </button>
+                <input
+                  type="text"
+                  className="input-bordered input join-item flex-grow"
+                  placeholder="Give me more elegant name"
+                  value={inputGenerateNamePrompt}
+                  onChange={(e) => {
+                    setInputGenerateNamePrompt(e.target.value);
+                  }}
+                />
+                <button
+                  className="btn-primary join-item btn"
+                  onClick={() => {
+                    if (inputGenerateNamePrompt != null) {
+                      generateName(inputGenerateNamePrompt);
+                    }
+                  }}
+                >
+                  Regenerate
+                </button>
+                <label
+                  className="btn-warning modal-action join-item btn"
+                  htmlFor="generate-name-modal"
+                >
+                  Cancel
+                </label>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

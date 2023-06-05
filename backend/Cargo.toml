@@ -10,6 +10,7 @@ anyhow = { version = "1.0.71", features = ["backtrace"] }
 async-openai = "0.10.3"
 axum = "0.6.18"
 envy = "0.4.2"
+itertools = "0.10.5"
 once_cell = "1.17.2"
 serde = { version = "1.0.163", features = ["derive"] }
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros", "signal"] }

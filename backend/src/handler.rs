@@ -1,7 +1,9 @@
 use async_openai::types::{
-    ChatCompletionRequestMessageArgs, CreateChatCompletionRequestArgs, Role,
+    ChatCompletionRequestMessage, ChatCompletionRequestMessageArgs,
+    CreateChatCompletionRequestArgs, Role,
 };
 use axum::{extract::State, http::StatusCode, routing, Json, Router};
+use itertools::join;
 use serde::Deserialize;
 use tower_http::services::ServeDir;
 
@@ -37,49 +39,94 @@ struct MessageHistory {
 }
 
 #[derive(Deserialize)]
+struct Relationship {
+    to: String,
+    description: String,
+}
+
+#[derive(Deserialize)]
 struct PostGenerateNameReq {
     histories: Vec<MessageHistory>,
+    characteristics: Vec<String>,
+    relationships: Vec<Relationship>,
 }
+
+const PROMPT: &str = "You are a fictional character name recommender. Recommend a fictional character name in double quote (\"). Answer with reasons.";
 
 async fn post_generate_name(
     State(state): State<AppState>,
     Json(req): Json<PostGenerateNameReq>,
 ) -> Result<String, (StatusCode, &'static str)> {
-    let histories_len = req.histories.len();
+    let mut messages = Vec::<ChatCompletionRequestMessage>::with_capacity(
+        if req.characteristics.is_empty() && req.relationships.is_empty() {
+            req.histories.len() + 1
+        } else {
+            req.histories.len() + 2
+        },
+    );
 
-    let openai_req = CreateChatCompletionRequestArgs::default()
-        .max_tokens(512u16)
-        .model("gpt-3.5-turbo")
-        .messages(
-            std::iter::once(
-                ChatCompletionRequestMessageArgs::default()
-                    .role(Role::System)
-                    .content("You are a fictional character name recommender. Recommend a fictional character name in double quote (\"). Answer with reasons.")
-                    .build(),
-            )
-            .chain(req.histories.into_iter().map(|history| {
-                ChatCompletionRequestMessageArgs::default()
-                    .role(history.role)
-                    .content(history.content)
-                    .build()
-            }))
-            .try_fold(
-                Vec::with_capacity(histories_len + 1),
-                |mut acc, m| match m {
-                    Ok(m) => {
-                        acc.push(m);
-                        Ok(acc)
-                    }
-                    Err(e) => Err(e),
-                },
-            )
+    messages.push(
+        ChatCompletionRequestMessageArgs::default()
+            .role(Role::System)
+            .content(PROMPT)
+            .build()
             .map_err(|_| {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "failed to build message for OpenAI API",
                 )
             })?,
-        )
+    );
+
+    if !req.characteristics.is_empty() || !req.relationships.is_empty() {
+        messages.push(
+            ChatCompletionRequestMessageArgs::default()
+                .role(Role::User)
+                .content(format!(
+                    "{}\n{}",
+                    join(
+                        req.characteristics
+                            .iter()
+                            .map(|ch| format!("- This character {}", ch)),
+                        "\n"
+                    ),
+                    join(
+                        req.relationships.iter().map(|rel| format!(
+                            "- This character and {} {}",
+                            rel.to, rel.description
+                        )),
+                        "\n"
+                    )
+                ))
+                .build()
+                .map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "failed to build message for OpenAI API",
+                    )
+                })?,
+        );
+    }
+
+    for history in req.histories {
+        messages.push(
+            ChatCompletionRequestMessageArgs::default()
+                .role(history.role)
+                .content(history.content)
+                .build()
+                .map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "failed to build message for OpenAI API",
+                    )
+                })?,
+        );
+    }
+
+    let openai_req = CreateChatCompletionRequestArgs::default()
+        .max_tokens(512u16)
+        .model("gpt-3.5-turbo")
+        .messages(messages)
         .build()
         .map_err(|_| {
             (
