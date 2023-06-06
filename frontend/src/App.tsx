@@ -137,7 +137,7 @@ function App() {
   const [selectedGeneratedName, setSelectedGeneratedName] = useState("");
   const [inputGenerateNamePrompt, setInputGenerateNamePrompt] = useState("");
 
-  window.setSelectedGeneratedName = (name: string) => {
+  (window as any).setSelectedGeneratedName = (name: string) => {
     setSelectedGeneratedName(name);
   };
 
